@@ -11,6 +11,8 @@ struct RecipeEditView: View {
     @State private var name: String
     @State private var servings: Double?
     @State private var ingredients: [Ingredient]
+    @State private var category: String
+    @State private var photoData: Data?
     @State private var addingIngredient = false
 
     init(recipe: Food?) {
@@ -18,6 +20,8 @@ struct RecipeEditView: View {
         _name = State(initialValue: recipe?.name ?? "")
         _servings = State(initialValue: recipe?.recipeServings ?? 1)
         _ingredients = State(initialValue: recipe?.ingredients ?? [])
+        _category = State(initialValue: recipe?.category ?? "")
+        _photoData = State(initialValue: recipe?.photoData)
     }
 
     private var servingCount: Double {
@@ -52,8 +56,12 @@ struct RecipeEditView: View {
 
     private var form: some View {
         Form {
+            Section {
+                PhotoField(photoData: $photoData)
+            }
             Section("Recipe") {
                 TextField("Name (e.g. Overnight oats)", text: $name)
+                CategoryPicker(category: $category, recipe: true)
                 HStack {
                     Text("Servings it makes")
                     Spacer()
@@ -131,6 +139,8 @@ struct RecipeEditView: View {
         food.nutrients = perServing
         food.ingredients = ingredients
         food.recipeServings = servingCount
+        food.category = category
+        food.photoData = photoData
         if recipe == nil {
             context.insert(food)
         }

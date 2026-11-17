@@ -18,6 +18,7 @@ struct AddFoodView: View {
 
     @State private var source = Source.myFoods
     @State private var query = ""
+    @State private var filter = FoodFilter.all
     @State private var results: [FoodDraft] = []
     @State private var isSearching = false
     @State private var errorMessage: String?
@@ -71,7 +72,10 @@ struct AddFoodView: View {
 
     @ViewBuilder
     private var myFoodsRows: some View {
-        let shown = foods.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
+        let shown = foods.filter { $0.matches(filter, query: query) }
+        if !foods.isEmpty {
+            CategoryFilterBar(selection: $filter, foods: foods)
+        }
         if foods.isEmpty {
             EmptyIllustration(symbol: "fork.knife", title: "No saved foods yet",
                               message: "Tap + to create one, or search the USDA database.")
@@ -103,11 +107,14 @@ struct AddFoodView: View {
         NavigationLink {
             LogFoodView(draft: draft, meal: meal, date: date, onIngredient: onIngredient) { dismiss() }
         } label: {
-            VStack(alignment: .leading) {
-                Text(draft.name)
-                Text(subtitle(for: draft))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+                FoodThumbnail(food: draft.food, fallbackCategory: FoodCategory(rawValue: draft.category), size: 36)
+                VStack(alignment: .leading) {
+                    Text(draft.name)
+                    Text(subtitle(for: draft))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }

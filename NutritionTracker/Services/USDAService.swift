@@ -25,7 +25,7 @@ enum USDAService {
             URLQueryItem(name: "api_key", value: apiKey.isEmpty ? demoKey : apiKey),
             URLQueryItem(name: "query", value: query),
             URLQueryItem(name: "pageSize", value: "30"),
-            URLQueryItem(name: "dataType", value: "Foundation,SR Legacy,Branded"),
+            URLQueryItem(name: "dataType", value: "Foundation,SR Legacy,Survey (FNDDS),Branded"),
         ]
         let (data, response) = try await URLSession.shared.data(from: components.url!)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
@@ -34,12 +34,58 @@ enum USDAService {
         return try JSONDecoder().decode(SearchResponse.self, from: data).foods.map(\.draft)
     }
 
+    /// Household portions ("1 large", "1 cup, chopped") for one food. Search results often leave these out.
+    static func portions(fdcId: Int, apiKey: String) async throws -> [Portion] {
+        var components = URLComponents(string: "https://api.nal.usda.gov/fdc/v1/food/\(fdcId)")!
+        components.queryItems = [URLQueryItem(name: "api_key", value: apiKey.isEmpty ? demoKey : apiKey)]
+        let (data, response) = try await URLSession.shared.data(from: components.url!)
+        if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+            throw http.statusCode == 429 ? SearchError.rateLimited : SearchError.badResponse(http.statusCode)
+        }
+        let detail = try JSONDecoder().decode(FoodDetail.self, from: data)
+        var portions: [Portion] = []
+        for item in detail.foodPortions ?? [] {
+            guard let grams = item.gramWeight, grams > 0 else { continue }
+            var label = item.portionDescription ?? ""
+            if label.isEmpty || label == "Quantity not specified" {
+                let unit = item.measureUnit?.name ?? ""
+                let parts = [formatAmount(item.amount ?? 1),
+                             unit == "undetermined" ? "" : unit,
+                             item.modifier ?? ""]
+                label = parts.filter { !$0.isEmpty }.joined(separator: " ")
+            }
+            if !portions.contains(where: { $0.label == label }) {
+                portions.append(Portion(label: label, grams: grams))
+            }
+        }
+        return portions
+    }
+
+    private struct FoodDetail: Decodable {
+        let foodPortions: [FoodPortion]?
+    }
+
+    private struct FoodPortion: Decodable {
+        let amount: Double?
+        let gramWeight: Double?
+        let modifier: String?
+        let portionDescription: String?
+        let measureUnit: MeasureUnit?
+    }
+
+    private struct MeasureUnit: Decodable {
+        let name: String?
+    }
+
     private struct SearchResponse: Decodable {
         let foods: [Item]
     }
 
     private struct Item: Decodable {
+        let fdcId: Int
         let description: String
+        let foodCategory: LenientString?
+        let brandedFoodCategory: LenientString?
         let brandOwner: String?
         let brandName: String?
         let servingSize: Double?
@@ -81,8 +127,19 @@ enum USDAService {
                 servingLabel: "100 g",
                 servingGrams: 100,
                 nutrients: per100g,
-                portions: portions
+                portions: portions,
+                category: FoodCategory.guess(fromUSDA: foodCategory?.value ?? brandedFoodCategory?.value ?? "")?.rawValue ?? "",
+                fdcId: fdcId
             )
+        }
+    }
+
+    /// A string field that USDA sometimes sends in another shape; anything but a string reads as nil.
+    private struct LenientString: Decodable {
+        let value: String?
+
+        init(from decoder: Decoder) throws {
+            value = try? decoder.singleValueContainer().decode(String.self)
         }
     }
 
