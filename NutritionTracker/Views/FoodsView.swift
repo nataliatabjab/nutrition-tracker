@@ -7,23 +7,32 @@ struct FoodsView: View {
     @Environment(\.modelContext) private var context
     @State private var query = ""
     @State private var creatingFood = false
+    @State private var creatingRecipe = false
 
     var body: some View {
         NavigationStack {
             List {
                 if foods.isEmpty {
-                    Text("Foods you create or log from the USDA database are saved here.")
-                        .foregroundStyle(.secondary)
+                    EmptyIllustration(symbol: "fork.knife", title: "No saved foods yet",
+                                      message: "Foods you create or log from the USDA database are saved here.")
                 }
                 ForEach(foods.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }) { food in
                     NavigationLink {
-                        FoodEditView(food: food)
+                        if food.isRecipe {
+                            RecipeEditView(recipe: food)
+                        } else {
+                            FoodEditView(food: food)
+                        }
                     } label: {
-                        VStack(alignment: .leading) {
-                            Text(food.name)
-                            Text("\(formatAmount(food.nutrients[.calories])) kcal per \(food.servingLabel)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            IconBadge(symbol: food.isRecipe ? "book.fill" : "fork.knife",
+                                      color: food.isRecipe ? .orange : .accentColor)
+                            VStack(alignment: .leading) {
+                                Text(food.name)
+                                Text("\(formatAmount(food.nutrients[.calories])) kcal per \(food.servingLabel)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                     .swipeActions {
@@ -34,10 +43,18 @@ struct FoodsView: View {
             .searchable(text: $query)
             .navigationTitle("My Foods")
             .toolbar {
-                Button { creatingFood = true } label: { Image(systemName: "plus") }
+                Menu {
+                    Button { creatingFood = true } label: { Label("New food", systemImage: "fork.knife") }
+                    Button { creatingRecipe = true } label: { Label("New recipe", systemImage: "book.fill") }
+                } label: {
+                    Image(systemName: "plus")
+                }
             }
             .sheet(isPresented: $creatingFood) {
                 FoodEditView(food: nil)
+            }
+            .sheet(isPresented: $creatingRecipe) {
+                RecipeEditView(recipe: nil)
             }
         }
     }

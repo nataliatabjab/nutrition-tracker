@@ -8,6 +8,7 @@ A personal iPhone app for tracking calories, macronutrients and micronutrients. 
 - Search the USDA FoodData Central database, or create foods by hand.
 - Daily totals against editable targets for calories, protein, carbs, fat, fiber, added sugar, sodium, vitamin D, selenium, iron, zinc, iodine, magnesium, vitamin B12, calcium and omega-3.
 - A warning when a nutrient goes above its upper intake limit.
+- Recipes: add ingredients and the number of servings, and the app works out the nutrients per serving.
 
 Planned: barcode scanning, recipe import from a photo or text, and Apple Health / Oura sync.
 

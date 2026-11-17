@@ -56,15 +56,13 @@ struct DayView: View {
     var body: some View {
         List {
             Section {
-                CalorieSummary(eaten: totals[.calories], target: goals.target(for: .calories))
-                ForEach(Nutrient.macros) { nutrient in
-                    NutrientRow(nutrient: nutrient, value: totals[nutrient], target: goals.target(for: nutrient))
-                }
+                DaySummaryCard(totals: totals)
             }
 
             ForEach(Meal.allCases) { meal in
-                Section(meal.title) {
-                    ForEach(entries.filter { $0.meal == meal.rawValue }) { entry in
+                let mealEntries = entries.filter { $0.meal == meal.rawValue }
+                Section {
+                    ForEach(mealEntries) { entry in
                         HStack {
                             VStack(alignment: .leading) {
                                 Text(entry.foodName)
@@ -83,8 +81,10 @@ struct DayView: View {
                     Button {
                         addingTo = meal
                     } label: {
-                        Label("Add food", systemImage: "plus")
+                        Label("Add food", systemImage: "plus.circle.fill")
                     }
+                } header: {
+                    MealHeader(meal: meal, calories: mealEntries.reduce(0) { $0 + $1.nutrients[.calories] })
                 }
             }
 
@@ -106,29 +106,87 @@ struct DayView: View {
     }
 }
 
-struct CalorieSummary: View {
-    let eaten: Double
-    let target: Double
+/// The calorie ring with the three macros beside it.
+struct DaySummaryCard: View {
+    let totals: NutrientValues
+    @EnvironmentObject private var goals: GoalStore
+
+    private var eaten: Double { totals[.calories] }
+    private var target: Double { goals.target(for: .calories) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(formatAmount(eaten))
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                Text("/ \(formatAmount(target)) kcal")
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(remainingText)
-                    .font(.subheadline)
-                    .foregroundStyle(eaten > target ? .orange : .secondary)
+        HStack(spacing: 20) {
+            ZStack {
+                RingView(progress: eaten / max(target, 1), color: eaten > target ? .red : .orange)
+                VStack(spacing: 0) {
+                    Image(systemName: "flame.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                    Text(formatAmount(eaten))
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                    Text(remainingText)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 18)
             }
-            ProgressView(value: min(eaten, target), total: max(target, 1))
+            .frame(width: 124, height: 124)
+
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Nutrient.macros) { nutrient in
+                    MacroBar(nutrient: nutrient, value: totals[nutrient], target: goals.target(for: nutrient))
+                }
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
     }
 
     private var remainingText: String {
         eaten > target ? "\(formatAmount(eaten - target)) over" : "\(formatAmount(target - eaten)) left"
+    }
+}
+
+struct MacroBar: View {
+    let nutrient: Nutrient
+    let value: Double
+    let target: Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Label(nutrient.name, systemImage: nutrient.symbol)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(nutrient.color)
+                Spacer()
+                Text("\(formatAmount(value)) / \(formatAmount(target)) g")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            CapsuleBar(progress: value / max(target, 1), color: nutrient.color, height: 6)
+        }
+    }
+}
+
+struct MealHeader: View {
+    let meal: Meal
+    let calories: Double
+
+    var body: some View {
+        HStack(spacing: 8) {
+            IconBadge(symbol: meal.symbol, color: meal.color, size: 26)
+            Text(meal.title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+            Spacer()
+            if calories > 0 {
+                Text("\(formatAmount(calories)) kcal")
+                    .font(.subheadline)
+            }
+        }
+        .textCase(nil)
+        .padding(.bottom, 4)
     }
 }
 
@@ -138,26 +196,35 @@ struct NutrientRow: View {
     let target: Double
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(nutrient.name)
-                if overUpperLimit {
-                    Image(systemName: "exclamationmark.triangle.fill")
+        HStack(spacing: 12) {
+            IconBadge(symbol: nutrient.symbol, color: nutrient.color)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text(nutrient.name)
+                    if reachedGoal {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.footnote)
+                    }
+                    if overUpperLimit || overLimit {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .font(.footnote)
+                    }
+                    Spacer()
+                    Text("\(formatAmount(value)) / \(formatAmount(target)) \(nutrient.unit)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                CapsuleBar(progress: value / max(target, 1), color: barColor)
+                if overUpperLimit, let limit = nutrient.upperLimit {
+                    Text("Above the upper limit of \(formatAmount(limit)) \(nutrient.unit)")
+                        .font(.caption)
                         .foregroundStyle(.orange)
                 }
-                Spacer()
-                Text("\(formatAmount(value)) / \(formatAmount(target)) \(nutrient.unit)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            ProgressView(value: min(value, target), total: max(target, 1))
-                .tint(barColor)
-            if overUpperLimit, let limit = nutrient.upperLimit {
-                Text("Above the upper limit of \(formatAmount(limit)) \(nutrient.unit)")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
             }
         }
+        .padding(.vertical, 2)
     }
 
     private var overUpperLimit: Bool {
@@ -165,9 +232,16 @@ struct NutrientRow: View {
         return value > limit
     }
 
+    /// Over a "stay under" target such as sodium.
+    private var overLimit: Bool {
+        nutrient.isLimit && value > target
+    }
+
+    private var reachedGoal: Bool {
+        !nutrient.isLimit && !overUpperLimit && value >= target
+    }
+
     private var barColor: Color {
-        if overUpperLimit { return .orange }
-        if nutrient.isLimit { return value > target ? .red : .accentColor }
-        return value >= target ? .green : .accentColor
+        overUpperLimit || overLimit ? .orange : nutrient.color
     }
 }

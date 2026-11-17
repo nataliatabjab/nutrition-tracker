@@ -1,9 +1,11 @@
 import SwiftUI
 import SwiftData
 
+/// Choose a food to log to a meal, or (with `onIngredient` set) to add to a recipe.
 struct AddFoodView: View {
-    let meal: Meal
-    let date: Date
+    var meal: Meal = .snack
+    var date: Date = Date()
+    var onIngredient: ((Ingredient) -> Void)?
 
     private enum Source: String, CaseIterable {
         case myFoods = "My Foods"
@@ -20,6 +22,7 @@ struct AddFoodView: View {
     @State private var isSearching = false
     @State private var errorMessage: String?
     @State private var creatingFood = false
+    @State private var creatingRecipe = false
 
     var body: some View {
         NavigationStack {
@@ -40,18 +43,28 @@ struct AddFoodView: View {
             .onSubmit(of: .search) {
                 if source == .usda { runSearch() }
             }
-            .navigationTitle("Add to \(meal.title)")
+            .navigationTitle(onIngredient == nil ? "Add to \(meal.title)" : "Add Ingredient")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button { creatingFood = true } label: { Image(systemName: "plus") }
+                    Menu {
+                        Button { creatingFood = true } label: { Label("New food", systemImage: "fork.knife") }
+                        if onIngredient == nil {
+                            Button { creatingRecipe = true } label: { Label("New recipe", systemImage: "book.fill") }
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
             .sheet(isPresented: $creatingFood) {
                 FoodEditView(food: nil)
+            }
+            .sheet(isPresented: $creatingRecipe) {
+                RecipeEditView(recipe: nil)
             }
         }
     }
@@ -59,10 +72,11 @@ struct AddFoodView: View {
     @ViewBuilder
     private var myFoodsRows: some View {
         let shown = foods.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
-        if shown.isEmpty {
-            Text(foods.isEmpty
-                 ? "No saved foods yet. Tap + to create one, or search the USDA database."
-                 : "No saved foods match.")
+        if foods.isEmpty {
+            EmptyIllustration(symbol: "fork.knife", title: "No saved foods yet",
+                              message: "Tap + to create one, or search the USDA database.")
+        } else if shown.isEmpty {
+            Text("No saved foods match.")
                 .foregroundStyle(.secondary)
         }
         ForEach(shown) { food in
@@ -77,8 +91,8 @@ struct AddFoodView: View {
         } else if let errorMessage {
             Text(errorMessage).foregroundStyle(.red)
         } else if results.isEmpty {
-            Text("Search the USDA database for foods like \"egg\", \"apple\" or \"oatmeal\".")
-                .foregroundStyle(.secondary)
+            EmptyIllustration(symbol: "magnifyingglass", title: "Search the USDA database",
+                              message: "Try foods like \"egg\", \"apple\" or \"oatmeal\", then press return.")
         }
         ForEach(results.indices, id: \.self) { index in
             row(for: results[index])
@@ -87,7 +101,7 @@ struct AddFoodView: View {
 
     private func row(for draft: FoodDraft) -> some View {
         NavigationLink {
-            LogFoodView(draft: draft, meal: meal, date: date) { dismiss() }
+            LogFoodView(draft: draft, meal: meal, date: date, onIngredient: onIngredient) { dismiss() }
         } label: {
             VStack(alignment: .leading) {
                 Text(draft.name)
