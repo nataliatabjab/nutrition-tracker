@@ -2,9 +2,11 @@ import SwiftUI
 import SwiftData
 
 /// Pick how much of a food was eaten, by serving, by household portion, or by weight.
+/// With `onIngredient` set, the amount goes to a recipe instead of the day's log.
 struct LogFoodView: View {
     let draft: FoodDraft
     let date: Date
+    var onIngredient: ((Ingredient) -> Void)?
     let onLogged: () -> Void
 
     private enum UnitChoice: Hashable {
@@ -19,9 +21,11 @@ struct LogFoodView: View {
     @State private var unit: UnitChoice
     @State private var saveToMyFoods = true
 
-    init(draft: FoodDraft, meal: Meal, date: Date, onLogged: @escaping () -> Void) {
+    init(draft: FoodDraft, meal: Meal, date: Date, onIngredient: ((Ingredient) -> Void)? = nil,
+         onLogged: @escaping () -> Void) {
         self.draft = draft
         self.date = date
+        self.onIngredient = onIngredient
         self.onLogged = onLogged
         _meal = State(initialValue: meal)
         // USDA foods are per 100 g, so a household portion ("1 large") is a friendlier default.
@@ -74,8 +78,10 @@ struct LogFoodView: View {
                         Text("grams").tag(UnitChoice.grams)
                     }
                 }
-                Picker("Meal", selection: $meal) {
-                    ForEach(Meal.allCases) { Text($0.title).tag($0) }
+                if onIngredient == nil {
+                    Picker("Meal", selection: $meal) {
+                        ForEach(Meal.allCases) { Text($0.title).tag($0) }
+                    }
                 }
                 if !draft.isSaved {
                     Toggle("Save to My Foods", isOn: $saveToMyFoods)
@@ -99,7 +105,7 @@ struct LogFoodView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Log") { log() }
+                Button(onIngredient == nil ? "Log" : "Add") { log() }
                     .disabled(factor <= 0)
             }
         }
@@ -109,8 +115,13 @@ struct LogFoodView: View {
         let amountText = unit == .grams
             ? "\(formatAmount(quantity ?? 0)) g"
             : "\(formatAmount(quantity ?? 0)) × \(unitLabel)"
-        context.insert(LogEntry(date: date, meal: meal, foodName: draft.name,
-                                amountText: amountText, nutrients: eaten))
+        if let onIngredient {
+            onIngredient(Ingredient(name: draft.name, amountText: amountText,
+                                    grams: factor * draft.servingGrams, nutrients: eaten))
+        } else {
+            context.insert(LogEntry(date: date, meal: meal, foodName: draft.name,
+                                    amountText: amountText, nutrients: eaten))
+        }
         if !draft.isSaved && saveToMyFoods {
             context.insert(Food(name: draft.name, brand: draft.brand, servingLabel: draft.servingLabel,
                                 servingGrams: draft.servingGrams, nutrients: draft.nutrients,

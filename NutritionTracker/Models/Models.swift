@@ -7,6 +7,15 @@ struct Portion: Codable, Hashable {
     var grams: Double
 }
 
+/// One line of a recipe, with the nutrients for the amount used.
+struct Ingredient: Codable, Hashable {
+    var name: String
+    var amountText: String
+    /// Weight of the amount used; 0 when unknown.
+    var grams: Double
+    var nutrients: NutrientValues
+}
+
 enum Meal: String, CaseIterable, Identifiable {
     case breakfast, lunch, dinner, snack
 
@@ -25,6 +34,9 @@ final class Food {
     var nutrientData: Data
     var portionData: Data
     var createdAt: Date
+    /// Recipes only. Defaults keep foods saved by earlier versions readable.
+    var ingredientData: Data = Data()
+    var recipeServings: Double = 0
 
     init(name: String, brand: String = "", servingLabel: String, servingGrams: Double,
          nutrients: NutrientValues, portions: [Portion] = []) {
@@ -46,6 +58,13 @@ final class Food {
         get { (try? JSONDecoder().decode([Portion].self, from: portionData)) ?? [] }
         set { portionData = (try? JSONEncoder().encode(newValue)) ?? Data() }
     }
+
+    var ingredients: [Ingredient] {
+        get { (try? JSONDecoder().decode([Ingredient].self, from: ingredientData)) ?? [] }
+        set { ingredientData = (try? JSONEncoder().encode(newValue)) ?? Data() }
+    }
+
+    var isRecipe: Bool { recipeServings > 0 }
 }
 
 /// One logged item. It keeps its own copy of the nutrients so editing a food later doesn't rewrite history.
