@@ -37,6 +37,11 @@ final class Food {
     /// Recipes only. Defaults keep foods saved by earlier versions readable.
     var ingredientData: Data = Data()
     var recipeServings: Double = 0
+    /// A `FoodCategory` raw value; "" when uncategorized.
+    var category: String = ""
+    /// USDA FoodData Central id, used to fetch portion sizes; 0 for foods not from USDA.
+    var fdcId: Int = 0
+    @Attribute(.externalStorage) var photoData: Data? = nil
 
     init(name: String, brand: String = "", servingLabel: String, servingGrams: Double,
          nutrients: NutrientValues, portions: [Portion] = []) {
@@ -65,6 +70,10 @@ final class Food {
     }
 
     var isRecipe: Bool { recipeServings > 0 }
+
+    var foodCategory: FoodCategory? {
+        FoodCategory(rawValue: category)
+    }
 }
 
 /// One logged item. It keeps its own copy of the nutrients so editing a food later doesn't rewrite history.
@@ -97,8 +106,12 @@ struct FoodDraft {
     var servingGrams: Double
     var nutrients: NutrientValues
     var portions: [Portion]
-    /// Set when the draft comes from My Foods, so it isn't saved a second time.
-    var isSaved: Bool
+    var category: String
+    var fdcId: Int
+    /// The saved food this draft comes from, so it isn't saved a second time and new units stick to it.
+    var food: Food?
+
+    var isSaved: Bool { food != nil }
 
     init(food: Food) {
         name = food.name
@@ -107,17 +120,21 @@ struct FoodDraft {
         servingGrams = food.servingGrams
         nutrients = food.nutrients
         portions = food.portions
-        isSaved = true
+        category = food.category
+        fdcId = food.fdcId
+        self.food = food
     }
 
     init(name: String, brand: String, servingLabel: String, servingGrams: Double,
-         nutrients: NutrientValues, portions: [Portion]) {
+         nutrients: NutrientValues, portions: [Portion], category: String = "", fdcId: Int = 0) {
         self.name = name
         self.brand = brand
         self.servingLabel = servingLabel
         self.servingGrams = servingGrams
         self.nutrients = nutrients
         self.portions = portions
-        isSaved = false
+        self.category = category
+        self.fdcId = fdcId
+        food = nil
     }
 }

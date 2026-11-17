@@ -19,6 +19,8 @@ struct RootView: View {
         TabView {
             TodayView()
                 .tabItem { Label("Today", systemImage: "chart.bar.fill") }
+            InsightsView()
+                .tabItem { Label("Insights", systemImage: "chart.line.uptrend.xyaxis") }
             FoodsView()
                 .tabItem { Label("My Foods", systemImage: "fork.knife") }
             SettingsView()
