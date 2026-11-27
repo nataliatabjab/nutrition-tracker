@@ -30,3 +30,16 @@ With a free Apple ID the app stops opening after 7 days until you press Run agai
 Search works straight away with a shared demo key, which allows only a few searches per hour. For normal use, get a free key at <https://fdc.nal.usda.gov/api-key-signup> and paste it into the app's Settings tab.
 
 USDA data has gaps: iodine and added sugar are missing for many foods, so those totals can read low.
+
+## Tell me what you ate
+
+On the Today screen, tap **Tell me what you ate** and describe your meals out loud, for example: "For breakfast I had 3 scrambled eggs and a cold brew with about a cup of Silk Original oat milk, and for lunch…". You can also type, and add photos of a plate or a nutrition label.
+
+1. Your voice is turned into text by Apple's speech recognition, on the iPhone itself where the phone supports it (it does for English on recent iPhones). You can edit the text before sending.
+2. Claude splits it into foods and meals, looks each one up in My Foods and the USDA database, and works out the amounts in grams.
+3. If an amount really matters and is unclear ("some pasta", oil used for cooking), it asks a few quick questions with tap-to-answer suggestions. Answer by tapping, talking or typing.
+4. You get a list grouped by meal with calories and macros. Tap an item to change its name, meal or portion, swipe to remove it, or just say what's wrong ("it was 2 eggs, not 3"). Nothing is logged until you tap **Log all**.
+
+Foods matched from USDA are saved to My Foods (you can turn this off on the review screen), so the next time you mention them they're found straight away. Where USDA has no value for a nutrient (often iodine), Claude's estimate fills the gap; items with no good match use Claude's estimate entirely and are marked as such.
+
+This needs a Claude API key: create one at <https://console.anthropic.com/settings/keys> and paste it into Settings. It's stored in the iPhone Keychain. A logging session usually costs about 10 to 30 cents. The text and any photos are sent to Claude; the audio recording isn't.

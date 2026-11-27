@@ -178,6 +178,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Nutrition;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of meals and nutrition labels to log them.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Record voice notes describing what you ate.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Turn your voice notes into text on your iPhone so meals can be logged.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -204,6 +207,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Nutrition;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Take photos of meals and nutrition labels to log them.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Record voice notes describing what you ate.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Turn your voice notes into text on your iPhone so meals can be logged.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

@@ -38,6 +38,7 @@ struct DayView: View {
     @Environment(\.modelContext) private var context
     @EnvironmentObject private var goals: GoalStore
     @State private var addingTo: Meal?
+    @State private var talkingAboutMeals = false
 
     init(date: Date) {
         self.date = date
@@ -57,6 +58,28 @@ struct DayView: View {
         List {
             Section {
                 DaySummaryCard(totals: totals)
+            }
+
+            Section {
+                Button {
+                    talkingAboutMeals = true
+                } label: {
+                    HStack(spacing: 12) {
+                        IconBadge(symbol: "mic.fill", color: .accentColor, size: 36)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Tell me what you ate")
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Text("Say it or snap it, and I'll log it")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
             }
 
             ForEach(Meal.allCases) { meal in
@@ -96,6 +119,9 @@ struct DayView: View {
         }
         .sheet(item: $addingTo) { meal in
             AddFoodView(meal: meal, date: logDate)
+        }
+        .sheet(isPresented: $talkingAboutMeals) {
+            VoiceLogView(date: logDate)
         }
     }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var goals: GoalStore
     @AppStorage("usdaApiKey") private var apiKey = ""
+    @State private var claudeKey = KeychainStore.claudeAPIKey
 
     var body: some View {
         NavigationStack {
@@ -27,6 +28,20 @@ struct SettingsView: View {
                     Text("Daily targets")
                 } footer: {
                     Text("Defaults are general reference values, not medical advice. Set these with your doctor.")
+                }
+
+                Section {
+                    SecureField("sk-ant-…", text: $claudeKey)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onChange(of: claudeKey) { _, newValue in
+                            KeychainStore.claudeAPIKey = newValue
+                        }
+                    Link("Get a key", destination: URL(string: "https://console.anthropic.com/settings/keys")!)
+                } header: {
+                    Text("Claude API key")
+                } footer: {
+                    Text("Used by \"Tell me what you ate\" to turn voice notes and photos into log entries. Kept in the iPhone Keychain. A logging session usually costs about 10 to 30 cents of API usage.")
                 }
 
                 Section {
