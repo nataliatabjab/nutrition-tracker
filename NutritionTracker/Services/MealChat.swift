@@ -86,7 +86,7 @@ final class MealChat: ObservableObject {
 
         let dayText = date.formatted(.dateTime.weekday(.wide).month(.wide).day())
         let timeText = Date().formatted(date: .omitted, time: .shortened)
-        var intro = "I'm logging food for \(dayText). It's \(timeText) now."
+        var intro = "I'm logging food for \(dayText). It's \(timeText) now (only use the time if I don't say which meal)."
         if !photos.isEmpty {
             intro += " I attached \(photos.count) photo\(photos.count == 1 ? "" : "s")."
         }
@@ -327,8 +327,10 @@ final class MealChat: ObservableObject {
         names spelled oddly, missing punctuation). She may attach photos of a plate, packaging or a nutrition label.
 
         Turn what she says into food log entries:
-        1. Split it into individual foods and put each under breakfast, lunch, dinner or snack. If she doesn't \
-        say which meal, infer it from context and the time of day.
+        1. Split it into individual foods and put each under breakfast, lunch, dinner or snack. When she names \
+        a meal ("for breakfast I had…", "this morning", "at dinner"), every food she lists for it goes under that \
+        meal, even if it's now later in the day. She often logs meals hours after eating them. \
+        Brunch counts as breakfast. Use the current time of day only for foods where she gives no hint at all.
         2. Call search_foods once with a query for every food to get nutrition data. Prefer her saved foods \
         (listed below) when they match what she ate. For branded products (for example "Silk Original oat \
         milk"), include the brand in the query. For cooked foods, prefer an entry that matches how it was \
@@ -424,7 +426,11 @@ final class MealChat: ObservableObject {
         let item: JSON = [
             "type": "object",
             "properties": [
-                "meal": ["type": "string", "enum": ["breakfast", "lunch", "dinner", "snack"]] as JSON,
+                "meal": [
+                    "type": "string",
+                    "enum": ["breakfast", "lunch", "dinner", "snack"],
+                    "description": "The meal she named for this food. Guess from the time only if she named none.",
+                ] as JSON,
                 "name": ["type": "string", "description": "Short friendly name, e.g. \"Scrambled eggs\"."],
                 "amount": ["type": "string", "description": "The amount in her words, e.g. \"3 large eggs\" or \"1 cup\"."],
                 "food_id": [

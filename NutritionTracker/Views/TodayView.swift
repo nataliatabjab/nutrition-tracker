@@ -97,6 +97,15 @@ struct DayView: View {
                             Text("\(formatAmount(entry.nutrients[.calories])) kcal")
                                 .foregroundStyle(.secondary)
                         }
+                        .contentShape(Rectangle())
+                        .draggable(dragToken(for: entry))
+                        .dropDestination(for: String.self) { tokens, _ in
+                            move(tokens, to: meal)
+                        }
+                        .contextMenu {
+                            MoveToMealButtons(current: entry.meal) { entry.meal = $0.rawValue }
+                            Button("Delete", systemImage: "trash", role: .destructive) { context.delete(entry) }
+                        }
                         .swipeActions {
                             Button("Delete", role: .destructive) { context.delete(entry) }
                         }
@@ -106,8 +115,18 @@ struct DayView: View {
                     } label: {
                         Label("Add food", systemImage: "plus.circle.fill")
                     }
+                    .dropDestination(for: String.self) { tokens, _ in
+                        move(tokens, to: meal)
+                    }
                 } header: {
                     MealHeader(meal: meal, calories: mealEntries.reduce(0) { $0 + $1.nutrients[.calories] })
+                        .dropDestination(for: String.self) { tokens, _ in
+                            move(tokens, to: meal)
+                        }
+                } footer: {
+                    if meal == .breakfast && !entries.isEmpty {
+                        Text("Hold a food to move it to another meal, or drag it onto one.")
+                    }
                 }
             }
 
@@ -125,10 +144,40 @@ struct DayView: View {
         }
     }
 
+    /// Identifies a log entry while it's dragged between meals.
+    private func dragToken(for entry: LogEntry) -> String {
+        guard let data = try? JSONEncoder().encode(entry.persistentModelID) else { return "" }
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    /// Moves dragged entries to `meal`. Returns false for anything that isn't one of today's entries.
+    private func move(_ tokens: [String], to meal: Meal) -> Bool {
+        var moved = false
+        for token in tokens {
+            guard let id = try? JSONDecoder().decode(PersistentIdentifier.self, from: Data(token.utf8)),
+                  let entry = entries.first(where: { $0.persistentModelID == id }) else { continue }
+            entry.meal = meal.rawValue
+            moved = true
+        }
+        return moved
+    }
+
     /// New entries on past days are stamped at noon of that day.
     private var logDate: Date {
         if Calendar.current.isDateInToday(date) { return Date() }
         return Calendar.current.startOfDay(for: date).addingTimeInterval(12 * 3600)
+    }
+}
+
+/// "Move to Lunch" etc. for every meal except the current one, for context menus.
+struct MoveToMealButtons: View {
+    let current: String
+    let onMove: (Meal) -> Void
+
+    var body: some View {
+        ForEach(Meal.allCases.filter { $0.rawValue != current }) { meal in
+            Button("Move to \(meal.title)", systemImage: "arrow.right.circle") { onMove(meal) }
+        }
     }
 }
 
