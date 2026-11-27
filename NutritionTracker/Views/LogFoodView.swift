@@ -63,6 +63,13 @@ struct LogFoodView: View {
         }
     }
 
+    /// "serving (2/3 cup)", so it's clear the amount counts servings as written on the label.
+    private var servingChoiceText: String {
+        let label = draft.servingLabel
+        let base = label.lowercased().contains("serving") ? label : "serving (\(label))"
+        return canUseWeight ? "\(base), \(formatAmount(draft.servingGrams)) g" : base
+    }
+
     private var eaten: NutrientValues {
         draft.nutrients.scaled(by: factor)
     }
@@ -92,7 +99,7 @@ struct LogFoodView: View {
                                 .tag(UnitChoice.portion(index))
                         }
                     }
-                    Text(draft.servingLabel).tag(UnitChoice.serving)
+                    Text(servingChoiceText).tag(UnitChoice.serving)
                     if canUseWeight {
                         Text("grams").tag(UnitChoice.grams)
                     }

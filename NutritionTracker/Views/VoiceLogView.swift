@@ -205,7 +205,7 @@ struct VoiceLogView: View {
                 totalsRow
                 Toggle("Save matched foods to My Foods", isOn: $saveMatches)
             } footer: {
-                Text("Tap an item to adjust it, swipe to remove it, or tell me what to change below.")
+                Text("Tap an item to adjust it, hold it to move it to another meal, swipe to remove it, or tell me what to change below.")
             }
 
             ForEach(Meal.allCases) { meal in
@@ -219,6 +219,13 @@ struct VoiceLogView: View {
                                 ProposedItemRow(item: item)
                             }
                             .buttonStyle(.plain)
+                            .contextMenu {
+                                MoveToMealButtons(current: item.meal.rawValue) { newMeal in
+                                    if let index = chat.items.firstIndex(where: { $0.id == item.id }) {
+                                        chat.items[index].meal = newMeal
+                                    }
+                                }
+                            }
                             .swipeActions {
                                 Button("Remove", role: .destructive) {
                                     chat.items.removeAll { $0.id == item.id }
